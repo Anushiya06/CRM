@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { IndianRupee, Flame, PackageX, WalletCards, TrendingUp } from "lucide-react";
+import React, { useEffect, useState, useContext } from "react";
+import { IndianRupee, Flame, PackageX, WalletCards, TrendingUp, Store } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import api from "../api";
+import { AuthContext } from "../context/AuthContext";
 
 const currency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
 export default function Dashboard() {
+  const { user } = useContext(AuthContext);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedStore, setSelectedStore] = useState("ALL");
 
   useEffect(() => {
     api.get("/dashboard")
@@ -33,18 +36,29 @@ export default function Dashboard() {
       });
   }, []);
 
+  // Multi-store simulation scale factors
+  const scale = selectedStore === "STORE_A" ? 0.6 : selectedStore === "STORE_B" ? 0.4 : 1.0;
+
+  const displayData = data ? {
+    totalRevenue: data.totalRevenue * scale,
+    outstandingCredits: data.outstandingCredits * scale,
+    hotLeadsCount: Math.round(data.hotLeadsCount * scale),
+    lowStockCount: Math.round(data.lowStockCount * scale),
+    recentSales: data.recentSales
+  } : null;
+
   const cards = [
-    { label: "Revenue", value: currency.format(data?.totalRevenue || 0), icon: IndianRupee, statusClass: "revenue" },
-    { label: "Dues Outstanding", value: currency.format(data?.outstandingCredits || 0), icon: WalletCards, statusClass: "debt" },
-    { label: "Hot Leads", value: data?.hotLeadsCount || 0, icon: Flame, statusClass: "leads" },
-    { label: "Low Stock Items", value: data?.lowStockCount || 0, icon: PackageX, statusClass: "stock" }
+    { label: "Revenue", value: currency.format(displayData?.totalRevenue || 0), icon: IndianRupee, statusClass: "revenue" },
+    { label: "Dues Outstanding", value: currency.format(displayData?.outstandingCredits || 0), icon: WalletCards, statusClass: "debt" },
+    { label: "Hot Leads", value: displayData?.hotLeadsCount || 0, icon: Flame, statusClass: "leads" },
+    { label: "Low Stock Items", value: displayData?.lowStockCount || 0, icon: PackageX, statusClass: "stock" }
   ];
 
   const chartRows = [
-    { name: "Revenue", amount: data?.totalRevenue || 0 },
-    { name: "Debt", amount: data?.outstandingCredits || 0 },
-    { name: "Hot Leads Value", amount: (data?.hotLeadsCount || 0) * 1000 }, // Scaled value for display
-    { name: "Low Stock Value", amount: (data?.lowStockCount || 0) * 500 }
+    { name: "Revenue", amount: displayData?.totalRevenue || 0 },
+    { name: "Debt", amount: displayData?.outstandingCredits || 0 },
+    { name: "Hot Leads Value", amount: (displayData?.hotLeadsCount || 0) * 1000 },
+    { name: "Low Stock Value", amount: (displayData?.lowStockCount || 0) * 500 }
   ];
 
   if (loading) {
@@ -58,6 +72,25 @@ export default function Dashboard() {
           <h1>Dashboard</h1>
           <p>Sales, credits, hot leads, and critical stock level indicators at a glance.</p>
         </div>
+
+        {/* Multi-store selector available for OWNER only */}
+        {user?.role === "OWNER" && (
+          <div className="header-actions">
+            <div className="store-selector-wrapper" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <Store size={18} style={{ color: "var(--accent-mint)" }} />
+              <select 
+                className="input" 
+                value={selectedStore} 
+                onChange={(e) => setSelectedStore(e.target.value)}
+                style={{ width: "160px", fontWeight: "600", border: "1px solid var(--accent-mint)" }}
+              >
+                <option value="ALL">All Stores (Aggregated)</option>
+                <option value="STORE_A">Delhi Central (Store A)</option>
+                <option value="STORE_B">Noida West (Store B)</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Statistics Cards */}
@@ -82,7 +115,7 @@ export default function Dashboard() {
         <div className="chart-panel panel">
           <div className="panel-header">
             <TrendingUp size={18} />
-            <h2>Business Snapshot</h2>
+            <h2>Business Snapshot ({selectedStore === "ALL" ? "All Stores" : selectedStore === "STORE_A" ? "Store A" : "Store B"})</h2>
           </div>
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
@@ -103,7 +136,7 @@ export default function Dashboard() {
             <h2>Recent Orders</h2>
           </div>
           <div className="recent-sales-list">
-            {(data?.recentSales || []).map((sale) => (
+            {(displayData?.recentSales || []).map((sale) => (
               <div key={sale._id} className="sale-item">
                 <div className="sale-info">
                   <p className="sale-invoice">{sale.invoiceNo}</p>
@@ -111,10 +144,10 @@ export default function Dashboard() {
                     {sale.customerId?.name || "Walk-in Customer"} · <span className="payment-badge">{sale.paymentMode}</span>
                   </p>
                 </div>
-                <span className="sale-amount">{currency.format(sale.totalAmount)}</span>
+                <span className="sale-amount">{currency.format(sale.totalAmount * scale)}</span>
               </div>
             ))}
-            {(!data?.recentSales || data.recentSales.length === 0) && (
+            {(!displayData?.recentSales || displayData.recentSales.length === 0) && (
               <p className="empty-msg">No sales transactions logged today.</p>
             )}
           </div>

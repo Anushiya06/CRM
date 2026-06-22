@@ -125,7 +125,7 @@ export default function Leads() {
     if (!newLeadPhone) return;
 
     try {
-      await api.post("/leads/webhook", { phone: newLeadPhone, message: `Manual lead created. Intent: ${newLeadIntent}` });
+      await api.post("/webhook", { phone: newLeadPhone, message: `Manual lead created. Intent: ${newLeadIntent}` });
       setNewLeadPhone("");
       setShowAddLead(false);
       loadLeads();

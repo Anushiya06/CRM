@@ -7,11 +7,12 @@ import {
   Package, 
   ShoppingCart, 
   WalletCards, 
-  LogOut 
+  LogOut,
+  Settings
 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 
-// Sidebar navigation component with active state highlights
+// Sidebar navigation component with active state highlights and RBAC visibility controls
 export default function Sidebar() {
   const { user, logout } = useContext(AuthContext);
 
@@ -35,30 +36,55 @@ export default function Sidebar() {
       )}
 
       <nav className="sidebar-nav">
-        <NavLink to="/dashboard" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
-          <LayoutDashboard size={18} />
-          <span>Dashboard</span>
-        </NavLink>
-        <NavLink to="/leads" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
-          <Flame size={18} />
-          <span>Leads Hub</span>
-        </NavLink>
-        <NavLink to="/customers" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
-          <Users size={18} />
-          <span>Customers</span>
-        </NavLink>
-        <NavLink to="/inventory" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
-          <Package size={18} />
-          <span>Inventory</span>
-        </NavLink>
-        <NavLink to="/pos" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
-          <ShoppingCart size={18} />
-          <span>POS Billing</span>
-        </NavLink>
-        <NavLink to="/khata" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
-          <WalletCards size={18} />
-          <span>Khata Ledger</span>
-        </NavLink>
+        {/* OWNER Links */}
+        {user?.role === "OWNER" && (
+          <>
+            <NavLink to="/dashboard" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+              <LayoutDashboard size={18} />
+              <span>Dashboard</span>
+            </NavLink>
+            <NavLink to="/users" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+              <Settings size={18} />
+              <span>Staff Management</span>
+            </NavLink>
+          </>
+        )}
+
+        {/* OWNER & SALES_EXEC Links */}
+        {(user?.role === "OWNER" || user?.role === "SALES_EXEC") && (
+          <>
+            <NavLink to="/leads" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+              <Flame size={18} />
+              <span>Leads Hub</span>
+            </NavLink>
+            <NavLink to="/customers" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+              <Users size={18} />
+              <span>Customers</span>
+            </NavLink>
+          </>
+        )}
+
+        {/* OWNER ONLY Links */}
+        {user?.role === "OWNER" && (
+          <NavLink to="/inventory" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+            <Package size={18} />
+            <span>Inventory</span>
+          </NavLink>
+        )}
+
+        {/* OWNER & CASHIER Links */}
+        {(user?.role === "OWNER" || user?.role === "CASHIER") && (
+          <>
+            <NavLink to="/pos" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+              <ShoppingCart size={18} />
+              <span>POS Billing</span>
+            </NavLink>
+            <NavLink to="/khata" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+              <WalletCards size={18} />
+              <span>Khata Ledger</span>
+            </NavLink>
+          </>
+        )}
       </nav>
 
       <div className="sidebar-footer">

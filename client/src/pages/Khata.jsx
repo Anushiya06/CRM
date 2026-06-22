@@ -1,16 +1,19 @@
-import React, { useEffect, useState } from "react";
-import { CheckCircle2, Wallet, User, Calendar, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import React, { useEffect, useState, useContext } from "react";
+import { CheckCircle2, Wallet, User, Calendar, ArrowUpRight, ArrowDownLeft, AlertCircle } from "lucide-react";
 import api from "../api";
+import { AuthContext } from "../context/AuthContext";
 
 const currency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
 export default function Khata() {
+  const { user } = useContext(AuthContext);
   const [accounts, setAccounts] = useState([]);
   const [payments, setPayments] = useState({});
   const [loading, setLoading] = useState(true);
 
   const loadAccounts = () => {
-    api.get("/khata")
+    const endpoint = user?.role === "OWNER" ? "/khata/defaulters" : "/khata";
+    api.get(endpoint)
       .then((res) => {
         setAccounts(res.data);
         setLoading(false);
@@ -84,10 +87,21 @@ export default function Khata() {
     <section className="khata-section animate-fade">
       <div className="page-header">
         <div>
-          <h1>Khata Ledger</h1>
-          <p>Track customer credit lines, monitor balances due, and register ledger debt repayments.</p>
+          <h1>{user?.role === "OWNER" ? "Khata Defaulters List" : "Khata Ledger"}</h1>
+          <p>
+            {user?.role === "OWNER" 
+              ? "Inspection directory of credit accounts sorted by highest outstanding dues first." 
+              : "Track customer credit lines, monitor balances due, and register ledger debt repayments."}
+          </p>
         </div>
       </div>
+
+      {user?.role === "OWNER" && (
+        <div className="alert alert-warning" style={{ marginBottom: "1.5rem" }}>
+          <AlertCircle size={18} />
+          <span>Notice: Access level is configured to show highest credit dues outstanding first for collection audits.</span>
+        </div>
+      )}
 
       <div className="khata-grid">
         {accounts.map((account) => (
@@ -105,13 +119,16 @@ export default function Khata() {
               
               <div className="khata-due-status">
                 <span className="due-label">CREDIT DUE</span>
-                <span className="due-amount-badge">
+                <span className="due-amount-badge" style={{ 
+                  backgroundColor: account.creditBalance > 10000 ? "var(--accent-rose-light)" : "var(--accent-amber-light)",
+                  color: account.creditBalance > 10000 ? "var(--accent-rose)" : "var(--accent-amber)"
+                }}>
                   {currency.format(account.creditBalance)}
                 </span>
               </div>
             </div>
 
-            {/* Quick Payment Input Form */}
+            {/* Repayment Log Form: Accessible to OWNER and CASHIER */}
             <div className="khata-payment-form">
               <div className="input-group">
                 <input 
